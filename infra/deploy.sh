@@ -56,25 +56,29 @@ gcloud sql databases create $DB_NAME \
 echo "Deploying Generator Cloud Run Job..."
 
 # Build and deploy the generator job
-# Requires a Dockerfile or using Google Cloud Buildpacks (used here via source)
 gcloud run jobs deploy $GENERATOR_JOB_NAME \
     --source . \
-    --command="python" \
-    --args="generator.py" \
     --region=$REGION \
     --set-env-vars="PROJECT_ID=$PROJECT_ID,REGION=$REGION,DB_USER=$DB_USER,DB_PASS=$DB_PASS,DB_NAME=$DB_NAME,DB_HOST=/cloudsql/$PROJECT_ID:$REGION:$DB_INSTANCE_NAME" \
-    --set-cloudsql-instances="$PROJECT_ID:$REGION:$DB_INSTANCE_NAME"
+    --set-cloudsql-instances="$PROJECT_ID:$REGION:$DB_INSTANCE_NAME" \
+    --project=$PROJECT_ID \
+    --command="" --args="" # Clear existing args if any, relying on Dockerfile.generator
+
+# Use gcloud builds submit for the generator to explicitly use the Dockerfile
+gcloud builds submit --tag gcr.io/$PROJECT_ID/$GENERATOR_JOB_NAME -f Dockerfile.generator .
+gcloud run jobs update $GENERATOR_JOB_NAME --image gcr.io/$PROJECT_ID/$GENERATOR_JOB_NAME --region=$REGION
 
 # ==========================================
 # Task 3 & 4: Cloud Run API Service
 # ==========================================
 echo "Deploying API Cloud Run Service..."
 
-# Build and deploy the FastAPI service
+# Use gcloud builds submit for the API to explicitly use the Dockerfile
+gcloud builds submit --tag gcr.io/$PROJECT_ID/$API_SERVICE_NAME -f Dockerfile.api .
+
+# Deploy the FastAPI service
 gcloud run deploy $API_SERVICE_NAME \
-    --source . \
-    --command="uvicorn" \
-    --args="api:app,--host=0.0.0.0,--port=8080" \
+    --image gcr.io/$PROJECT_ID/$API_SERVICE_NAME \
     --region=$REGION \
     --no-allow-unauthenticated \
     --set-env-vars="PROJECT_ID=$PROJECT_ID,REGION=$REGION,DB_USER=$DB_USER,DB_PASS=$DB_PASS,DB_NAME=$DB_NAME,DB_HOST=/cloudsql/$PROJECT_ID:$REGION:$DB_INSTANCE_NAME,STRIPE_WEBHOOK_SECRET=your_stripe_secret,STRIPE_API_KEY=your_stripe_api_key" \

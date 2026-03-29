@@ -185,12 +185,17 @@ echo -e "${BLUE}Cloud SQL setup completed.${NC}\n"
 # Phase 4: Deploy Cloud Run Job (Generator)
 # ==========================================
 echo -e "${GREEN}--- Phase 4: Deploying Generator Cloud Run Job ---${NC}"
-echo "Building and deploying the generator job..."
+echo "Building and deploying the generator job using Dockerfile.generator..."
 
-gcloud run jobs deploy $GENERATOR_JOB_NAME \
-    --source . \
-    --command="python" \
-    --args="generator.py" \
+gcloud builds submit --tag gcr.io/$PROJECT_ID/$GENERATOR_JOB_NAME -f Dockerfile.generator .
+
+gcloud run jobs create $GENERATOR_JOB_NAME \
+    --image gcr.io/$PROJECT_ID/$GENERATOR_JOB_NAME \
+    --region=$REGION \
+    --set-env-vars="PROJECT_ID=$PROJECT_ID,REGION=$REGION,DB_USER=$DB_USER,DB_PASS=$DB_PASS,DB_NAME=$DB_NAME,DB_HOST=/cloudsql/$PROJECT_ID:$REGION:$DB_INSTANCE_NAME" \
+    --set-cloudsql-instances="$PROJECT_ID:$REGION:$DB_INSTANCE_NAME" || \
+gcloud run jobs update $GENERATOR_JOB_NAME \
+    --image gcr.io/$PROJECT_ID/$GENERATOR_JOB_NAME \
     --region=$REGION \
     --set-env-vars="PROJECT_ID=$PROJECT_ID,REGION=$REGION,DB_USER=$DB_USER,DB_PASS=$DB_PASS,DB_NAME=$DB_NAME,DB_HOST=/cloudsql/$PROJECT_ID:$REGION:$DB_INSTANCE_NAME" \
     --set-cloudsql-instances="$PROJECT_ID:$REGION:$DB_INSTANCE_NAME"
@@ -201,12 +206,12 @@ echo -e "${BLUE}Generator Job deployed successfully.${NC}\n"
 # Phase 5: Deploy Cloud Run API Service
 # ==========================================
 echo -e "${GREEN}--- Phase 5: Deploying Cloud Run API Service ---${NC}"
-echo "Building and deploying the FastAPI service..."
+echo "Building and deploying the FastAPI service using Dockerfile.api..."
+
+gcloud builds submit --tag gcr.io/$PROJECT_ID/$API_SERVICE_NAME -f Dockerfile.api .
 
 gcloud run deploy $API_SERVICE_NAME \
-    --source . \
-    --command="uvicorn" \
-    --args="api:app,--host=0.0.0.0,--port=8080" \
+    --image gcr.io/$PROJECT_ID/$API_SERVICE_NAME \
     --region=$REGION \
     --no-allow-unauthenticated \
     --set-env-vars="PROJECT_ID=$PROJECT_ID,REGION=$REGION,DB_USER=$DB_USER,DB_PASS=$DB_PASS,DB_NAME=$DB_NAME,DB_HOST=/cloudsql/$PROJECT_ID:$REGION:$DB_INSTANCE_NAME,STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET,STRIPE_API_KEY=$STRIPE_API_KEY" \
