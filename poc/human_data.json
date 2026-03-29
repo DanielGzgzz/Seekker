@@ -1,0 +1,38 @@
+{
+  "topics": [
+    {
+      "id": "ev_adoption",
+      "question": "How likely are you to purchase an Electric Vehicle (EV) as your next car?",
+      "options": ["Very Likely", "Somewhat Likely", "Neutral", "Somewhat Unlikely", "Very Unlikely"],
+      "human_baseline": {
+        "Very Likely": 0.25,
+        "Somewhat Likely": 0.35,
+        "Neutral": 0.15,
+        "Somewhat Unlikely": 0.15,
+        "Very Unlikely": 0.10
+      }
+    },
+    {
+      "id": "remote_work",
+      "question": "What is your preferred work arrangement?",
+      "options": ["Fully Remote", "Hybrid (3-4 days remote)", "Hybrid (1-2 days remote)", "Fully In-Office"],
+      "human_baseline": {
+        "Fully Remote": 0.30,
+        "Hybrid (3-4 days remote)": 0.40,
+        "Hybrid (1-2 days remote)": 0.20,
+        "Fully In-Office": 0.10
+      }
+    },
+    {
+      "id": "ai_trust",
+      "question": "How much do you trust AI tools to assist you with daily professional tasks?",
+      "options": ["High Trust", "Moderate Trust", "Low Trust", "No Trust"],
+      "human_baseline": {
+        "High Trust": 0.20,
+        "Moderate Trust": 0.45,
+        "Low Trust": 0.25,
+        "No Trust": 0.10
+      }
+    }
+  ]
+}
