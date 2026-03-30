@@ -12,8 +12,8 @@ from google.cloud import apikeys_v2
 from google.cloud.apikeys_v2 import Key
 
 from core.database import get_db, engine
-from core.models import Base
-from app.schemas import GenerateRequest, MarketReportResponse, WebhookResponse
+from core.models import Base, PaymentTransaction
+from app.schemas import GenerateRequest, MarketReportResponse, WebhookResponse, CheckoutResponse, PaymentStatusResponse
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -41,12 +41,12 @@ app = FastAPI(
     version="1.0.0"
 )
 
-def get_embedding(text_content: str) -> list:
+def get_embedding(text_content: str, task_type: str = "RETRIEVAL_DOCUMENT") -> list:
     """
     Generate a vector embedding using Vertex AI TextEmbeddingModel.
     """
     try:
-        inputs = [TextEmbeddingInput(text_content, "RETRIEVAL_DOCUMENT")]
+        inputs = [TextEmbeddingInput(text_content, task_type)]
         embeddings = embedding_model.get_embeddings(inputs)
         return embeddings[0].values
     except Exception as e:
@@ -85,7 +85,7 @@ async def generate_market_report(req: GenerateRequest, db: Session = Depends(get
     logger.info(f"Received generation request. Query: {req.query}, Target: {req.target_demographic}")
 
     # 1. Get embedding for the target demographic
-    query_embedding = get_embedding(req.target_demographic)
+    query_embedding = get_embedding(req.target_demographic, task_type="RETRIEVAL_QUERY")
     if not query_embedding:
         raise HTTPException(status_code=500, detail="Failed to generate embedding for target demographic.")
 
@@ -94,7 +94,7 @@ async def generate_market_report(req: GenerateRequest, db: Session = Depends(get
     try:
         # Using pgvector L2 distance operator (<->)
         sql = text("""
-            SELECT profile_data, demographic_embedding <-> :embedding AS distance
+            SELECT profile_data, demographic_embedding <-> CAST(:embedding AS vector) AS distance
             FROM synthetic_profiles
             ORDER BY distance ASC
             LIMIT :limit
@@ -149,8 +149,69 @@ async def generate_market_report(req: GenerateRequest, db: Session = Depends(get
         logger.error(f"Vertex AI generation error: {e}")
         raise HTTPException(status_code=500, detail="Failed to generate market report.")
 
+@app.post("/checkout", response_model=CheckoutResponse)
+async def create_checkout_session(db: Session = Depends(get_db)):
+    """
+    Creates a Stripe Checkout Session for purchasing an API Key.
+    Returns the URL where the user should securely enter their payment details.
+    """
+    try:
+        # In a real app, define the price_id from your Stripe Dashboard
+        # For POC, we create a generic 1-time session
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': 'Synthetic Market API Key',
+                        'description': 'Grants access to generate synthetic demographic market reports.'
+                    },
+                    'unit_amount': 5000, # $50.00
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url='https://example.com/success?session_id={CHECKOUT_SESSION_ID}',
+            cancel_url='https://example.com/cancel',
+        )
+
+        # Record the transaction status as pending in our DB
+        transaction = PaymentTransaction(
+            stripe_session_id=session.id,
+            status="pending"
+        )
+        db.add(transaction)
+        db.commit()
+
+        return CheckoutResponse(
+            checkout_url=session.url,
+            session_id=session.id
+        )
+    except Exception as e:
+        logger.error(f"Error creating Stripe checkout session: {e}")
+        raise HTTPException(status_code=500, detail="Could not create checkout session")
+
+
+@app.get("/status/{session_id}", response_model=PaymentStatusResponse)
+async def check_payment_status(session_id: str, db: Session = Depends(get_db)):
+    """
+    Polling endpoint for clients to check if their payment succeeded
+    and retrieve their provisioned API key.
+    """
+    transaction = db.query(PaymentTransaction).filter(PaymentTransaction.stripe_session_id == session_id).first()
+
+    if not transaction:
+        raise HTTPException(status_code=404, detail="Transaction not found.")
+
+    return PaymentStatusResponse(
+        status=transaction.status,
+        api_key=transaction.api_key
+    )
+
+
 @app.post("/webhook", response_model=WebhookResponse)
-async def stripe_webhook(request: Request):
+async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     """
     Listens for a Stripe payment webhook and automatically provisions
     a Google API Gateway key for the purchasing user.
@@ -171,17 +232,28 @@ async def stripe_webhook(request: Request):
 
     if event['type'] == 'checkout.session.completed':
         session = event['data']['object']
+        session_id = session.get('id')
         customer_email = session.get('customer_details', {}).get('email')
+
+        # Look up transaction
+        transaction = db.query(PaymentTransaction).filter(PaymentTransaction.stripe_session_id == session_id).first()
 
         if customer_email:
             logger.info(f"Payment successful for {customer_email}. Provisioning API Key...")
             try:
                 api_key = provision_api_key(customer_email)
                 logger.info(f"Successfully provisioned API key for {customer_email}")
-                # Note: Integration with an email service (SendGrid, etc) would happen here.
+
+                if transaction:
+                    transaction.status = "completed"
+                    transaction.customer_email = customer_email
+                    transaction.api_key = api_key
+                    db.commit()
             except Exception as e:
                 logger.error(f"Failed to provision API key: {e}")
-                # Depending on business logic, you might raise here so Stripe retries
+                if transaction:
+                    transaction.status = "failed"
+                    db.commit()
         else:
             logger.warning("No customer email found in checkout session.")
 

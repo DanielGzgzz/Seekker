@@ -14,3 +14,15 @@ CREATE TABLE IF NOT EXISTS synthetic_profiles (
 
 -- Create an HNSW index for faster vector similarity search
 CREATE INDEX ON synthetic_profiles USING hnsw (demographic_embedding vector_l2_ops);
+
+-- Create a table to track Stripe checkout sessions and provisioned API keys
+CREATE TABLE IF NOT EXISTS payment_transactions (
+    id SERIAL PRIMARY KEY,
+    stripe_session_id VARCHAR NOT NULL UNIQUE,
+    customer_email VARCHAR,
+    status VARCHAR NOT NULL DEFAULT 'pending',
+    api_key VARCHAR,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX ON payment_transactions (stripe_session_id);

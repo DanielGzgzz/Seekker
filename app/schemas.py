@@ -23,3 +23,17 @@ class WebhookResponse(BaseModel):
     Standard status response for webhooks.
     """
     status: str
+
+class CheckoutResponse(BaseModel):
+    """
+    Response containing the Stripe Checkout Session URL for the customer.
+    """
+    checkout_url: str
+    session_id: str
+
+class PaymentStatusResponse(BaseModel):
+    """
+    Response indicating if the payment succeeded and returning the API key if provisioned.
+    """
+    status: str
+    api_key: str | None = None

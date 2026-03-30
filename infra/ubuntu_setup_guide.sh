@@ -249,6 +249,29 @@ paths:
       responses:
         '200':
           description: A successful response
+  /checkout:
+    post:
+      summary: Create Stripe Checkout Session
+      operationId: checkout
+      x-google-backend:
+        address: $API_URL/checkout
+      responses:
+        '200':
+          description: A successful response
+  /status/{session_id}:
+    get:
+      summary: Check Payment Status
+      operationId: status
+      x-google-backend:
+        address: $API_URL/status/{session_id}
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          type: string
+      responses:
+        '200':
+          description: A successful response
   /webhook:
     post:
       summary: Stripe Webhook
