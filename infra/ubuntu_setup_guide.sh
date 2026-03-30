@@ -249,6 +249,17 @@ paths:
       responses:
         '200':
           description: A successful response
+  /analyze_product:
+    post:
+      summary: Multimodal Product Analysis
+      operationId: analyze_product
+      x-google-backend:
+        address: $API_URL/analyze_product
+      security:
+        - api_key: []
+      responses:
+        '200':
+          description: A successful response
   /checkout:
     post:
       summary: Create Stripe Checkout Session

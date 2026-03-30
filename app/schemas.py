@@ -37,3 +37,23 @@ class PaymentStatusResponse(BaseModel):
     """
     status: str
     api_key: str | None = None
+
+class DemographicSentiment(BaseModel):
+    """
+    Detailed sentiment for a specific demographic group.
+    """
+    group_name: str
+    affinity_score: float = Field(..., description="0.0 to 10.0 scale of how likely they are to engage/buy")
+    key_objections: List[str]
+    selling_points: List[str]
+    representative_quote: str
+
+class MultimodalAnalysisResponse(BaseModel):
+    """
+    Structured response for the frontend dashboard after analyzing a product idea.
+    """
+    product_description: str
+    has_image: bool
+    overall_market_fit_score: float = Field(..., description="0.0 to 10.0 scale")
+    executive_summary: str
+    demographic_breakdown: List[DemographicSentiment]

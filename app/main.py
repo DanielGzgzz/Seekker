@@ -3,17 +3,17 @@ import json
 import logging
 import stripe
 import vertexai
-from fastapi import FastAPI, HTTPException, Request, Depends
+from fastapi import FastAPI, HTTPException, Request, Depends, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from vertexai.generative_models import GenerativeModel
+from vertexai.generative_models import GenerativeModel, Part
 from vertexai.language_models import TextEmbeddingInput, TextEmbeddingModel
 from google.cloud import apikeys_v2
 from google.cloud.apikeys_v2 import Key
 
 from core.database import get_db, engine
 from core.models import Base, PaymentTransaction
-from app.schemas import GenerateRequest, MarketReportResponse, WebhookResponse, CheckoutResponse, PaymentStatusResponse
+from app.schemas import GenerateRequest, MarketReportResponse, WebhookResponse, CheckoutResponse, PaymentStatusResponse, MultimodalAnalysisResponse
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -148,6 +148,119 @@ async def generate_market_report(req: GenerateRequest, db: Session = Depends(get
     except Exception as e:
         logger.error(f"Vertex AI generation error: {e}")
         raise HTTPException(status_code=500, detail="Failed to generate market report.")
+
+@app.post("/analyze_product", response_model=MultimodalAnalysisResponse)
+async def analyze_product(
+    product_description: str = Form(..., description="A detailed textual description of the product or service."),
+    target_demographic: str = Form(..., description="The demographic target (used to fetch the closest synthetic profiles)."),
+    image: UploadFile | None = File(None, description="An optional image of the product."),
+    num_profiles: int = Form(10, description="Number of synthetic profiles to analyze."),
+    db: Session = Depends(get_db)
+):
+    """
+    Multimodal endpoint designed for a high-end frontend dashboard.
+    Accepts text and images, queries the database for matching profiles,
+    and returns a structured JSON evaluation scoring the product fit.
+    """
+    # 1. Fetch relevant profiles via pgvector
+    query_embedding = get_embedding(target_demographic, task_type="RETRIEVAL_QUERY")
+    if not query_embedding:
+        raise HTTPException(status_code=500, detail="Failed to embed target demographic.")
+
+    profiles = []
+    try:
+        sql = text("""
+            SELECT profile_data, demographic_embedding <-> CAST(:embedding AS vector) AS distance
+            FROM synthetic_profiles
+            ORDER BY distance ASC
+            LIMIT :limit
+        """)
+        result = db.execute(sql, {
+            "embedding": str(query_embedding),
+            "limit": num_profiles
+        })
+        for row in result:
+            profiles.append(row[0])
+    except Exception as e:
+        logger.error(f"Database query error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to query profiles.")
+
+    if not profiles:
+        raise HTTPException(status_code=404, detail="No relevant profiles found.")
+
+    # 2. Build the multimodal prompt
+    prompt_text = f"""
+    You are an expert product-market fit analyst. I am launching a new product/service.
+
+    Product Description:
+    "{product_description}"
+
+    Target Demographic Idea:
+    "{target_demographic}"
+
+    Here is a representative panel of {len(profiles)} synthetic Israeli demographic profiles that fit this target:
+    {json.dumps(profiles, indent=2)}
+
+    Please analyze how well this product fits this panel. If an image is attached, take its visual appeal into account.
+
+    You MUST return ONLY a valid JSON object matching this schema exactly:
+    {{
+      "product_description": "short summary",
+      "has_image": true/false,
+      "overall_market_fit_score": 0.0 to 10.0,
+      "executive_summary": "1 paragraph summary",
+      "demographic_breakdown": [
+        {{
+           "group_name": "e.g. Secular Tech Workers",
+           "affinity_score": 0.0 to 10.0,
+           "key_objections": ["list", "of", "objections"],
+           "selling_points": ["list", "of", "selling", "points"],
+           "representative_quote": "A single sentence quote from this persona."
+        }}
+      ]
+    }}
+
+    Do not wrap the JSON in markdown blocks (e.g. ```json). Just return the raw JSON string.
+    """
+
+    contents = [prompt_text]
+    has_image = False
+
+    # 3. Handle image attachment for Gemini
+    if image and image.content_type.startswith("image/"):
+        has_image = True
+        try:
+            image_bytes = await image.read()
+            image_part = Part.from_data(
+                mime_type=image.content_type,
+                data=image_bytes
+            )
+            contents.append(image_part)
+        except Exception as e:
+            logger.error(f"Failed to process image upload: {e}")
+            raise HTTPException(status_code=400, detail="Invalid image file.")
+
+    # 4. Generate the structured report
+    try:
+        logger.info("Calling Gemini for multimodal product analysis...")
+        response = generation_model.generate_content(contents)
+        text_resp = response.text.strip()
+
+        if text_resp.startswith("```json"):
+            text_resp = text_resp[7:-3].strip()
+        elif text_resp.startswith("```"):
+            text_resp = text_resp[3:-3].strip()
+
+        report_data = json.loads(text_resp)
+
+        # Enforce image flag based on actual upload status
+        report_data["has_image"] = has_image
+
+        return report_data
+    except Exception as e:
+        logger.error(f"Vertex AI parsing error: {e}")
+        logger.error(f"Raw response was: {response.text}")
+        raise HTTPException(status_code=500, detail="Failed to generate structured market report.")
 
 @app.post("/checkout", response_model=CheckoutResponse)
 async def create_checkout_session(db: Session = Depends(get_db)):
