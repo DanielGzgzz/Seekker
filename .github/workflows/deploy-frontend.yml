@@ -1,0 +1,53 @@
+name: Deploy Frontend to Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/deploy-frontend.yml'
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  SERVICE_NAME: synthetic-frontend
+  REGION: us-central1
+  DOCKER_IMAGE: gcr.io/${{ secrets.GCP_PROJECT_ID }}/synthetic-frontend
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+        service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Configure Docker
+      run: gcloud auth configure-docker --quiet
+
+    - name: Build and Push Container
+      run: |-
+        cd frontend
+        docker build -t $DOCKER_IMAGE:$GITHUB_SHA .
+        docker push $DOCKER_IMAGE:$GITHUB_SHA
+
+    - name: Deploy to Cloud Run
+      run: |-
+        gcloud run deploy $SERVICE_NAME \
+          --image $DOCKER_IMAGE:$GITHUB_SHA \
+          --region $REGION \
+          --allow-unauthenticated \
+          --port 8080

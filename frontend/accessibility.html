@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>הצהרת נגישות (Accessibility Statement) | SynthMarket.AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            700: '#15803d',
+                            900: '#14532d',
+                        },
+                        dark: '#111827'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 text-gray-900 font-sans antialiased leading-relaxed">
+
+    <a href="#main-content" class="skip-link sr-only focus:not-sr-only focus:absolute focus:top-4 focus:right-4 focus:bg-brand-900 focus:text-white focus:px-4 focus:py-2 focus:rounded focus:z-50 focus:outline-none focus:ring-4 focus:ring-brand-700">
+        דלג לתוכן המרכזי (Skip to main content)
+    </a>
+
+    <header class="bg-white border-b border-gray-200" role="banner">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-start items-center h-20">
+                <a href="index.html" aria-label="חזרה לדף הבית" class="text-xl font-bold text-brand-900 focus:outline-none focus:ring-4 focus:ring-brand-700 rounded px-2">
+                    &rarr; חזרה ל- SynthMarket.AI
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content" tabindex="-1" class="focus:outline-none main-content" role="main">
+        <section class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 bg-white shadow-sm mt-8 mb-16 rounded-lg border border-gray-100" aria-labelledby="accessibility-heading">
+            <h1 id="accessibility-heading" class="text-3xl font-extrabold text-gray-900 mb-8">הצהרת נגישות</h1>
+
+            <div class="prose prose-lg text-gray-700 max-w-none space-y-6">
+                <p>
+                    חברת <strong>SynthMarket.AI</strong> רואה חשיבות רבה במתן שירות שוויוני לכלל הגולשים, לרבות אנשים עם מוגבלויות. אנו פועלים רבות כדי להנגיש את האתר שלנו, כך שיוכל לספק חווית גלישה נוחה וטובה לכל אדם.
+                </p>
+
+                <h2 class="text-2xl font-bold text-gray-900 mt-8 mb-4">רמת הנגישות</h2>
+                <p>
+                    אתר זה הונגש בהתאם לתקנות שוויון זכויות לאנשים עם מוגבלות (התאמות נגישות לשירות), תשע"ג-2013, ועומד בדרישות התקן הישראלי (ת"י 5568) להנגשת אתרים באינטרנט ברמת <span class="font-bold">AA</span>, המבוסס על הנחיות WCAG 2.0 של גוף ה-W3C.
+                </p>
+
+                <h2 class="text-2xl font-bold text-gray-900 mt-8 mb-4">אמצעי הנגישות באתר</h2>
+                <ul class="list-disc pl-5 pr-5 space-y-2">
+                    <li><strong>ניווט מקלדת:</strong> האתר מותאם לגלישה באמצעות מקלדת. ניתן להשתמש במקש Tab כדי לנווט בין אלמנטים אינטראקטיביים, ובמקש Enter כדי להפעילם. קיים סימון ברור (Focus) לכל אלמנט המסומן כעת.</li>
+                    <li><strong>קופץ לתוכן מרכזי (Skip Link):</strong> בראש העמוד קיים קישור סמוי המאפשר למשתמשי מקלדת וקוראי מסך לדלג ישירות לתוכן המרכזי של העמוד.</li>
+                    <li><strong>ניגודיות צבעים:</strong> הותאמו צבעי הטקסט והרקע כדי להבטיח ניגודיות גבוהה (מעל 4.5:1), המקלה על אנשים עם לקויות ראייה לקרוא את התוכן.</li>
+                    <li><strong>תאימות לקוראי מסך:</strong> האתר נבנה באמצעות קוד HTML סמנטי ותקין, ושולבו בו תגיות ARIA בהתאם לצורך, כדי להבטיח תמיכה מלאה בתוכנות קוראות מסך כגון NVDA ו-JAWS.</li>
+                    <li><strong>הגדרות שפה:</strong> שפת האתר וכל אלמנט מוגדרים בצורה ברורה (lang="he", dir="rtl") בכדי לאפשר לקורא המסך לקרוא כראוי.</li>
+                </ul>
+
+                <h2 class="text-2xl font-bold text-gray-900 mt-8 mb-4">יצירת קשר ותמיכה בנגישות</h2>
+                <p>
+                    אנו ממשיכים במאמצים לשפר את נגישות האתר כחלק ממחויבותנו לאפשר לכלל האוכלוסייה, כולל אנשים עם מוגבלויות, לגלוש בצורה החלקה ביותר.
+                    אם נתקלתם בבעיית נגישות, נשמח אם תעדכנו אותנו.
+                </p>
+                <p class="font-bold mt-4">פרטי רכז/ת הנגישות:</p>
+                <ul class="list-none space-y-1">
+                    <li>שם: צוות התמיכה SynthMarket.AI</li>
+                    <li>דוא"ל: <a href="mailto:accessibility@synthmarket.ai" class="text-brand-700 hover:text-brand-900 underline">accessibility@synthmarket.ai</a></li>
+                </ul>
+
+                <p class="text-sm text-gray-500 mt-8">הצהרת הנגישות עודכנה לאחרונה בתאריך: מרץ 2024</p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-gray-100 py-8 border-t border-gray-200 text-center text-gray-600 text-sm" role="contentinfo">
+        &copy; 2024 SynthMarket.AI
+    </footer>
+
+</body>
+</html>

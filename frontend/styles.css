@@ -1,0 +1,44 @@
+/* Custom overrides and accessibility utilities */
+
+/* Ensure smooth scrolling when clicking skip links */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Ensure focus states are always highly visible for keyboard users */
+:focus-visible {
+    outline: 4px solid #22c55e;
+    outline-offset: 2px;
+}
+
+/* For browsers that don't support focus-visible yet */
+a:focus, button:focus, input:focus {
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.5);
+}
+
+/* Utility classes for screen readers (Tailwind provides sr-only, but adding fallback) */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* Base link styling for accessibility (contrast and underline) */
+.main-content a:not(.btn) {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    color: #15803d; /* brand-700 */
+}
+
+.main-content a:not(.btn):hover,
+.main-content a:not(.btn):focus {
+    color: #14532d; /* brand-900 */
+    text-decoration-thickness: 2px;
+}
