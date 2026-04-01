@@ -64,7 +64,7 @@ pip install --quiet google-cloud-aiplatform==1.45.0 numpy==1.26.4 streamlit==1.3
 echo -e "\n${GREEN}[3/3] Launching Web Dashboard...${NC}"
 
 # Check if GCP credentials exist. If not, warn user.
-if [ -z "$GOOGLE_APPLICATION_CREDENTIALS" ] && ! gcloud auth print-access-token &> /dev/null; then
+if [ -z "${GOOGLE_APPLICATION_CREDENTIALS:-}" ] && ! gcloud auth print-access-token &> /dev/null; then
     echo -e "\n⚠️  No Google Cloud credentials detected."
     echo "The dashboard will default to MOCK MODE."
     echo "To run with real AI, please authenticate using: gcloud auth application-default login"
