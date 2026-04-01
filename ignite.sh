@@ -33,17 +33,17 @@ source $VENV_DIR/bin/activate
 
 # Install requirements
 echo -e "\n${GREEN}[2/3] Installing dependencies...${NC}"
-# We only need the core AI and math libraries for the CLI agent
-pip install --quiet google-cloud-aiplatform==1.45.0 numpy==1.26.4
+# Install core AI, math, and web dashboard libraries
+pip install --quiet google-cloud-aiplatform==1.45.0 numpy==1.26.4 streamlit==1.32.2 pandas==2.2.1 plotly==5.19.0
 
-echo -e "\n${GREEN}[3/3] Launching Agent...${NC}"
+echo -e "\n${GREEN}[3/3] Launching Web Dashboard...${NC}"
 
-# Check if GCP credentials exist. If not, suggest MOCK mode.
+# Check if GCP credentials exist. If not, warn user.
 if [ -z "$GOOGLE_APPLICATION_CREDENTIALS" ] && ! gcloud auth print-access-token &> /dev/null; then
     echo -e "\n⚠️  No Google Cloud credentials detected."
-    echo "The agent will run in MOCK MODE for demonstration purposes."
+    echo "The dashboard will default to MOCK MODE."
     echo "To run with real AI, please authenticate using: gcloud auth application-default login"
-    python agent.py --mock
-else
-    python agent.py
 fi
+
+# Launch the Streamlit app. It will automatically open the browser.
+streamlit run streamlit_app.py
