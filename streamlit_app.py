@@ -2,12 +2,23 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import time
-from generator.ipf import perform_ipf
+import random
 import json
 import os
 
 # Set page config
 st.set_page_config(page_title="Synthetic Market Analysis", layout="wide")
+
+# Load wildcards
+@st.cache_data
+def load_wildcards():
+    try:
+        with open("wildcards/israeli_population_10k.json", "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return []
+
+WILDCARDS = load_wildcards()
 
 # Try to initialize Vertex AI
 def init_vertex():
@@ -107,16 +118,20 @@ with st.sidebar:
     mock_mode = st.checkbox("Enable Mock Mode (Skip real AI calls)", value=FORCE_MOCK)
 
     if FORCE_MOCK:
-        st.warning("⚠️ Running in Mock Mode because GCP credentials were not found.")
+        st.warning("⚠️ Running in Mock Mode because GCP credentials were not found. See CREDENTIALS_GUIDE.txt to set up real AI access.")
 
     run_btn = st.button("Run Simulation 🚀", type="primary", use_container_width=True)
 
 if run_btn:
-    with st.spinner(f"Generating a highly detailed synthetic panel of {panel_size} profiles..."):
-        profiles = perform_ipf(panel_size)
+    if not WILDCARDS:
+        st.error("Wildcards file not found! Please run `python wildcards/generate_wildcards.py` first.")
+        st.stop()
+
+    with st.spinner(f"Sampling a highly detailed synthetic panel of {panel_size} profiles from the 10,000 wildcard pool..."):
+        profiles = random.sample(WILDCARDS, panel_size)
         df = pd.DataFrame(profiles)
 
-    st.success(f"Generated {panel_size} synthetic profiles.")
+    st.success(f"Sampled {panel_size} synthetic profiles.")
 
     # --- Dashboard Tabs ---
     tab1, tab2, tab3 = st.tabs(["Market Analysis", "Population Demographics", "Financial & Social Stats"])
